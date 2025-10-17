@@ -8,35 +8,57 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Luxury Jewelry Color Palette */
+    --background: 38 30% 97%;
+    --foreground: 30 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 30 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 30 20% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Rich gold primary color */
+    --primary: 43 74% 49%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Elegant gold variant */
+    --primary-glow: 45 100% 60%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Soft taupe secondary */
+    --secondary: 30 15% 88%;
+    --secondary-foreground: 30 20% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted warm tones */
+    --muted: 35 20% 92%;
+    --muted-foreground: 30 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Warm brown accent */
+    --accent: 25 35% 70%;
+    --accent-foreground: 30 20% 15%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 43 74% 49%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    
+    /* Custom luxury gradients */
+    --gradient-gold: linear-gradient(135deg, hsl(43, 74%, 49%), hsl(45, 100%, 60%));
+    --gradient-elegant: linear-gradient(180deg, hsl(38, 30%, 97%), hsl(35, 20%, 92%));
+    --gradient-hero: linear-gradient(135deg, hsl(30, 20%, 15%) 0%, hsl(25, 35%, 30%) 100%);
+    
+    /* Elegant shadows */
+    --shadow-gold: 0 10px 40px -10px hsl(43 74% 49% / 0.3);
+    --shadow-soft: 0 4px 20px -4px hsl(30 20% 15% / 0.1);
+    --shadow-card: 0 8px 30px -8px hsl(30 20% 15% / 0.15);
+    
+    /* Smooth transitions */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.2s ease;
 
     --sidebar-background: 0 0% 98%;
 
@@ -56,33 +78,36 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark mode luxury theme */
+    --background: 30 20% 10%;
+    --foreground: 38 30% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 30 20% 12%;
+    --card-foreground: 38 30% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 30 20% 12%;
+    --popover-foreground: 38 30% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 43 74% 49%;
+    --primary-foreground: 0 0% 100%;
+    
+    --primary-glow: 45 100% 60%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 30 15% 20%;
+    --secondary-foreground: 38 30% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 15% 18%;
+    --muted-foreground: 30 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 25 35% 40%;
+    --accent-foreground: 38 30% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 30 15% 20%;
+    --input: 30 15% 20%;
+    --ring: 43 74% 49%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -101,5 +126,33 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-primary text-primary-foreground hover:opacity-90 transition-all duration-300 shadow-[0_4px_20px_-4px_hsl(43_74%_49%_/_0.4)] hover:shadow-[0_8px_30px_-6px_hsl(43_74%_49%_/_0.5)] hover:scale-105;
+  }
+  
+  .card-elegant {
+    @apply bg-card rounded-lg p-6 shadow-[0_8px_30px_-8px_hsl(30_20%_15%_/_0.15)] hover:shadow-[0_12px_40px_-10px_hsl(30_20%_15%_/_0.2)] transition-all duration-400;
+  }
+  
+  .text-gold {
+    @apply text-primary;
+  }
+  
+  .gradient-gold {
+    background: linear-gradient(135deg, hsl(43, 74%, 49%), hsl(45, 100%, 60%));
+  }
+  
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(30, 20%, 15%) 0%, hsl(25, 35%, 30%) 100%);
   }
 }
