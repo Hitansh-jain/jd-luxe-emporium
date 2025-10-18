@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -91,6 +121,7 @@ export type Database = {
           image_url: string | null
           name: string
           price: number
+          size: string | null
           stock: number
           updated_at: string
         }
@@ -102,6 +133,7 @@ export type Database = {
           image_url?: string | null
           name: string
           price: number
+          size?: string | null
           stock?: number
           updated_at?: string
         }
@@ -113,6 +145,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           price?: number
+          size?: string | null
           stock?: number
           updated_at?: string
         }
@@ -136,6 +169,30 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+        }
+        Relationships: []
+      }
+      suggestions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
         }
         Relationships: []
       }

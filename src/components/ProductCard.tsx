@@ -10,9 +10,10 @@ interface ProductCardProps {
   price: number;
   image_url: string;
   category: string;
+  description?: string;
 }
 
-const ProductCard = ({ id, name, price, image_url, category }: ProductCardProps) => {
+const ProductCard = ({ id, name, price, image_url, category, description }: ProductCardProps) => {
   const addToCart = () => {
     const sessionId = getOrCreateSessionId();
     const cartItems = JSON.parse(localStorage.getItem(`cart_${sessionId}`) || '[]');
@@ -65,6 +66,9 @@ const ProductCard = ({ id, name, price, image_url, category }: ProductCardProps)
             {name}
           </h3>
         </Link>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{description}</p>
+        )}
         <p className="text-xl font-bold text-primary mt-2">₹{price.toLocaleString('en-IN')}</p>
       </CardContent>
       

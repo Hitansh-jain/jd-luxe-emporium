@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, ShieldCheck, Truck } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-jewelry.jpg";
 import necklace1 from "@/assets/necklace-1.jpg";
 import earrings1 from "@/assets/earrings-1.jpg";
@@ -9,6 +11,22 @@ import bangles1 from "@/assets/bangles-1.jpg";
 import ring1 from "@/assets/ring-1.jpg";
 
 const Index = () => {
+  const [banners, setBanners] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchBanners();
+  }, []);
+
+  const fetchBanners = async () => {
+    const { data } = await supabase
+      .from('banners')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    
+    if (data) setBanners(data);
+  };
+
   const categories = [
     { name: "Necklaces", image: necklace1, link: "/products?category=necklace" },
     { name: "Earrings", image: earrings1, link: "/products?category=earrings" },
@@ -37,10 +55,10 @@ const Index = () => {
         
         <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-            Elegance Redefined
+            Premium Artificial Jewellery
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-white/90">
-            Discover timeless beauty in our curated collection of exquisite jewelry
+            High-quality artificial jewellery at the cheapest prices - Not gold or silver
           </p>
           <Link to="/products">
             <Button size="lg" className="btn-gold text-lg px-8 py-6">
@@ -50,6 +68,21 @@ const Index = () => {
           </Link>
         </div>
       </section>
+
+      {/* Banners Section */}
+      {banners.length > 0 && (
+        <section className="py-8 bg-muted/30 overflow-hidden">
+          <div className="animate-[scroll_20s_linear_infinite] flex gap-8 whitespace-nowrap">
+            {[...banners, ...banners].map((banner, index) => (
+              <div key={index} className="inline-flex items-center gap-2 bg-primary/10 px-6 py-3 rounded-full">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-lg">{banner.title}</span>
+                {banner.subtitle && <span className="text-muted-foreground">• {banner.subtitle}</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-16 bg-muted/30">
@@ -119,10 +152,10 @@ const Index = () => {
       <footer className="bg-muted/50 py-12">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-2xl font-bold text-primary mb-4">JD Jewellers</h3>
-              <p className="text-muted-foreground">Crafting elegance since inception</p>
-            </div>
+          <div>
+            <h3 className="text-2xl font-bold text-primary mb-4">Harsh Adornments</h3>
+            <p className="text-muted-foreground">Premium artificial jewellery at unbeatable prices</p>
+          </div>
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-muted-foreground">
@@ -143,13 +176,13 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-muted-foreground">
-                <li>Phone: +91 90799 98370</li>
-                <li>Email: info@jdjewellers.com</li>
+                <li>Phone: +91 9887198488</li>
+                <li>Email: Hitanshj707@gmail.com</li>
               </ul>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-muted-foreground">
-            <p>&copy; 2025 JD Jewellers. All rights reserved.</p>
+            <p>&copy; 2025 Harsh Adornments. All rights reserved.</p>
           </div>
         </div>
       </footer>

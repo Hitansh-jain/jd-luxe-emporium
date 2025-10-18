@@ -30,7 +30,7 @@ serve(async (req) => {
     ).join('\n');
 
     // Create WhatsApp message
-    const message = `🛍️ *NEW ORDER FROM JD JEWELLERS*
+    const message = `🛍️ *NEW ORDER FROM HARSH ADORNMENTS*
 
 👤 *Customer Details:*
 Name: ${customerName}
@@ -49,7 +49,7 @@ ${productsList}
     const encodedMessage = encodeURIComponent(message);
     
     // WhatsApp number
-    const whatsappNumber = '919079998370';
+    const whatsappNumber = '919887198488';
     
     // Create WhatsApp API URL (using WhatsApp Business API format)
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${encodedMessage}`;

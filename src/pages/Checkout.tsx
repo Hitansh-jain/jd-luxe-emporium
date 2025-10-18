@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -14,7 +13,11 @@ const checkoutSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
   phone: z.string().trim().regex(/^[0-9]{10}$/, "Please enter a valid 10-digit phone number"),
   email: z.string().trim().email("Please enter a valid email").optional().or(z.literal('')),
-  address: z.string().trim().min(10, "Please enter a complete address").max(500, "Address is too long"),
+  fullAddress: z.string().trim().min(5, "Please enter your full address").max(200, "Address is too long"),
+  pinCode: z.string().trim().regex(/^[0-9]{6}$/, "Please enter a valid 6-digit PIN code"),
+  city: z.string().trim().min(2, "City is required").max(50, "City name is too long"),
+  district: z.string().trim().min(2, "District is required").max(50, "District name is too long"),
+  state: z.string().trim().min(2, "State is required").max(50, "State name is too long"),
 });
 
 const Checkout = () => {
@@ -22,23 +25,61 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const singleProductId = searchParams.get('product');
   
+  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
-    address: '',
+    fullAddress: '',
+    pinCode: '',
+    city: '',
+    district: '',
+    state: '',
   });
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      const currentPath = `/checkout${singleProductId ? `?product=${singleProductId}` : ''}`;
+      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+    
+    setUser(user);
+    
+    // Load user profile data
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.full_name || '',
+        email: profile.email || user.email || '',
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        email: user.email || '',
+      }));
+    }
+    
     loadCheckoutData();
-  }, [singleProductId]);
+  };
 
   const loadCheckoutData = async () => {
     if (singleProductId) {
-      // Buy Now - single product
       const { data: product } = await supabase
         .from('products')
         .select('*')
@@ -49,7 +90,6 @@ const Checkout = () => {
         setProducts([{ ...product, quantity: 1 }]);
       }
     } else {
-      // Cart checkout
       const sessionId = getOrCreateSessionId();
       const cartItems = JSON.parse(localStorage.getItem(`cart_${sessionId}`) || '[]');
       if (cartItems.length === 0) {
@@ -75,10 +115,9 @@ const Checkout = () => {
     return subtotal + shipping;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -91,7 +130,6 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     try {
       checkoutSchema.parse(formData);
       setErrors({});
@@ -112,11 +150,13 @@ const Checkout = () => {
     setLoading(true);
 
     try {
+      const fullAddress = `${formData.fullAddress}, ${formData.city}, ${formData.district}, ${formData.state}, ${formData.pinCode}`;
+      
       const orderDetails = {
         customerName: formData.name,
         customerPhone: formData.phone,
         customerEmail: formData.email,
-        customerAddress: formData.address,
+        customerAddress: fullAddress,
         products: products.map(p => ({
           name: p.name,
           price: p.price,
@@ -125,7 +165,6 @@ const Checkout = () => {
         totalAmount: getTotalAmount()
       };
 
-      // Save order to database
       const { error: dbError } = await supabase
         .from('orders')
         .insert({
@@ -139,14 +178,12 @@ const Checkout = () => {
 
       if (dbError) throw dbError;
 
-      // Send WhatsApp notification
       const { data, error } = await supabase.functions.invoke('send-whatsapp-order', {
         body: { orderDetails }
       });
 
       if (error) throw error;
 
-      // Clear cart if not single product purchase
       if (!singleProductId) {
         const sessionId = getOrCreateSessionId();
         localStorage.removeItem(`cart_${sessionId}`);
@@ -155,12 +192,10 @@ const Checkout = () => {
 
       toast.success('Order placed successfully!');
       
-      // Open WhatsApp with the message
       if (data?.whatsappUrl) {
         window.open(data.whatsappUrl, '_blank');
       }
 
-      // Navigate to success page or home
       setTimeout(() => navigate('/'), 2000);
 
     } catch (error) {
@@ -171,7 +206,7 @@ const Checkout = () => {
     }
   };
 
-  if (products.length === 0) {
+  if (!user || products.length === 0) {
     return <div>Loading...</div>;
   }
 
@@ -231,17 +266,72 @@ const Checkout = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="address">Complete Address *</Label>
-                    <Textarea
-                      id="address"
-                      name="address"
-                      value={formData.address}
+                    <Label htmlFor="fullAddress">Full Address *</Label>
+                    <Input
+                      id="fullAddress"
+                      name="fullAddress"
+                      value={formData.fullAddress}
                       onChange={handleInputChange}
-                      placeholder="House/Flat No., Street, Area, City, State, PIN"
-                      rows={4}
+                      placeholder="House/Flat No., Street, Area"
                       required
                     />
-                    {errors.address && <p className="text-sm text-destructive mt-1">{errors.address}</p>}
+                    {errors.fullAddress && <p className="text-sm text-destructive mt-1">{errors.fullAddress}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="city">City *</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="City"
+                        required
+                      />
+                      {errors.city && <p className="text-sm text-destructive mt-1">{errors.city}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="district">District *</Label>
+                      <Input
+                        id="district"
+                        name="district"
+                        value={formData.district}
+                        onChange={handleInputChange}
+                        placeholder="District"
+                        required
+                      />
+                      {errors.district && <p className="text-sm text-destructive mt-1">{errors.district}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="state">State *</Label>
+                      <Input
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        placeholder="State"
+                        required
+                      />
+                      {errors.state && <p className="text-sm text-destructive mt-1">{errors.state}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="pinCode">PIN Code *</Label>
+                      <Input
+                        id="pinCode"
+                        name="pinCode"
+                        value={formData.pinCode}
+                        onChange={handleInputChange}
+                        placeholder="6-digit PIN"
+                        required
+                      />
+                      {errors.pinCode && <p className="text-sm text-destructive mt-1">{errors.pinCode}</p>}
+                    </div>
                   </div>
 
                   <Button
