@@ -158,7 +158,7 @@ const Index = () => {
           </div>
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-muted-foreground">
+              <ul className="space-y-2 text-muted-foreground text-base">
                 <li><Link to="/products" className="hover:text-primary transition-colors">Products</Link></li>
                 <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
                 <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
@@ -166,7 +166,7 @@ const Index = () => {
             </div>
             <div>
               <h4 className="font-semibold mb-4">Categories</h4>
-              <ul className="space-y-2 text-muted-foreground">
+              <ul className="space-y-2 text-muted-foreground text-base">
                 <li><Link to="/products?category=necklace" className="hover:text-primary transition-colors">Necklaces</Link></li>
                 <li><Link to="/products?category=earrings" className="hover:text-primary transition-colors">Earrings</Link></li>
                 <li><Link to="/products?category=bangles" className="hover:text-primary transition-colors">Bangles</Link></li>
@@ -175,7 +175,7 @@ const Index = () => {
             </div>
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-muted-foreground">
+              <ul className="space-y-2 text-muted-foreground text-base">
                 <li>Phone: +91 9887198488</li>
                 <li>Email: Hitanshj707@gmail.com</li>
               </ul>
