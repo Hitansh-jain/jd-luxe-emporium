@@ -9,6 +9,7 @@ import necklace1 from "@/assets/necklace-1.jpg";
 import earrings1 from "@/assets/earrings-1.jpg";
 import bangles1 from "@/assets/bangles-1.jpg";
 import ring1 from "@/assets/ring-1.jpg";
+import logo from "@/assets/logo.png";
 
 const Index = () => {
   const [banners, setBanners] = useState<any[]>([]);
@@ -153,7 +154,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-2xl font-bold text-primary mb-4">Harsh Adornments</h3>
+            <img src={logo} alt="Logo" className="h-16 md:h-20 w-auto mb-4" />
             <p className="text-muted-foreground">Premium artificial jewellery at unbeatable prices</p>
           </div>
             <div>
@@ -182,7 +183,7 @@ const Index = () => {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border text-center text-muted-foreground">
-            <p>&copy; 2025 Harsh Adornments. All rights reserved.</p>
+            <p>&copy; 2025 Harsh Kangan. All rights reserved.</p>
           </div>
         </div>
       </footer>
