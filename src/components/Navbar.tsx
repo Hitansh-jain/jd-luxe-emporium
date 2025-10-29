@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.png";
 
 const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
@@ -54,10 +55,10 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3 md:py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary">Harsh Adornments</h1>
+          <Link to="/" className="flex items-center">
+            <img src={logo} alt="Logo" className="h-10 w-auto md:h-12 object-contain" />
           </Link>
 
           {/* Desktop Navigation */}
