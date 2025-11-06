@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, LogOut, MessageSquare, Megaphone, Upload, X, ImageIcon, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, LogOut, MessageSquare, Megaphone, Upload, X, ImageIcon, Sparkles, ArrowLeft, Mail, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Demo component - Replace with your actual Supabase integration
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
@@ -52,21 +51,48 @@ const AdminDashboard = () => {
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
-      
+
       if (error) throw error;
-      
+
       toast.success('Order status updated successfully');
-      fetchData(); // Refresh data
+      fetchData();
     } catch (error) {
       toast.error('Failed to update order status');
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+// Replace your handleLogout function with this:
+
+const [loggingOut, setLoggingOut] = useState(false);
+
+const handleLogout = async () => {
+  if (loggingOut) return; // Prevent multiple clicks
+
+  setLoggingOut(true);
+
+  try {
+    // Sign out from Supabase
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+
+    // Show success message
     toast.success('Logged out successfully');
-    navigate('/');
-  };
+
+    // Small delay to ensure session is cleared
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Navigate to login page with replace to prevent back navigation
+    navigate('/admin/login', { replace: true });
+  } catch (error: any) {
+    console.error('Logout failed:', error);
+    toast.error(error.message || 'Failed to logout');
+    setLoggingOut(false);
+  }
+};
 
   useEffect(() => {
     checkAdminAuth();
@@ -79,14 +105,14 @@ const AdminDashboard = () => {
       navigate('/admin');
       return;
     }
-    
+
     const { data: roles } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
       .maybeSingle();
-    
+
     if (!roles) {
       navigate('/admin');
     }
@@ -118,7 +144,7 @@ const AdminDashboard = () => {
     const { data: ordersData } = await supabase
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false});
+      .order('created_at', { ascending: false });
     if (ordersData) setOrders(ordersData);
   };
 
@@ -138,7 +164,6 @@ const AdminDashboard = () => {
     }
 
     setUploadingImage(true);
-    // Simulate upload
     setTimeout(() => {
       const mockUrl = URL.createObjectURL(file);
       setFormData({ ...formData, image_url: mockUrl });
@@ -147,15 +172,14 @@ const AdminDashboard = () => {
     }, 1000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
+    try {
       const productData = {
-        id: editingProduct?.id || Date.now().toString(),
         name: formData.name,
-        description: formData.description,
+        description: formData.description || null,
         price: parseFloat(formData.price),
         category: formData.category,
         stock: parseInt(formData.stock),
@@ -164,43 +188,68 @@ const AdminDashboard = () => {
       };
 
       if (editingProduct) {
-        setProducts(products.map(p => p.id === editingProduct.id ? productData : p));
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+
+        if (error) throw error;
         toast.success('Product updated successfully!');
       } else {
-        setProducts([productData, ...products]);
+        const { error } = await supabase
+          .from('products')
+          .insert([productData]);
+
+        if (error) throw error;
         toast.success('Product added successfully!');
       }
 
       setDialogOpen(false);
       resetForm();
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save product');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  const handleBannerSubmit = (e: React.FormEvent) => {
+  const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
+    try {
       const bannerData = {
-        id: editingBanner?.id || Date.now().toString(),
         title: bannerFormData.title,
         subtitle: bannerFormData.subtitle || null,
         display_order: parseInt(bannerFormData.display_order),
       };
 
       if (editingBanner) {
-        setBanners(banners.map(b => b.id === editingBanner.id ? bannerData : b));
+        const { error } = await supabase
+          .from('banners')
+          .update(bannerData)
+          .eq('id', editingBanner.id);
+
+        if (error) throw error;
         toast.success('Banner updated successfully!');
       } else {
-        setBanners([...banners, bannerData].sort((a, b) => a.display_order - b.display_order));
+        const { error } = await supabase
+          .from('banners')
+          .insert([bannerData]);
+
+        if (error) throw error;
         toast.success('Banner added successfully!');
       }
 
       setBannerDialogOpen(false);
       resetBannerForm();
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to save banner');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   const handleEdit = (product: any) => {
@@ -227,22 +276,55 @@ const AdminDashboard = () => {
     setBannerDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    setProducts(products.filter(p => p.id !== id));
-    toast.success('Product deleted successfully!');
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Product deleted successfully!');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete product');
+    }
   };
 
-  const handleDeleteBanner = (id: string) => {
+  const handleDeleteBanner = async (id: string) => {
     if (!confirm('Are you sure you want to delete this banner?')) return;
-    setBanners(banners.filter(b => b.id !== id));
-    toast.success('Banner deleted successfully!');
+
+    try {
+      const { error } = await supabase
+        .from('banners')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Banner deleted successfully!');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete banner');
+    }
   };
 
-  const handleDeleteSuggestion = (id: string) => {
-    if (!confirm('Are you sure you want to delete this suggestion?')) return;
-    setSuggestions(suggestions.filter(s => s.id !== id));
-    toast.success('Suggestion deleted successfully!');
+  const handleDeleteSuggestion = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('suggestions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success('Message deleted successfully!');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete message');
+    }
   };
 
   const resetForm = () => {
@@ -269,7 +351,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/30 to-slate-50">
-      {/* Elegant Header with Gold Accent */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-amber-200/50 shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
@@ -287,50 +368,50 @@ const AdminDashboard = () => {
                 <p className="text-xs tracking-wide text-slate-600 font-light">JEWELRY MANAGEMENT</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="gap-2 border-amber-300 hover:bg-amber-50 hover:border-amber-400 transition-all min-h-[44px]"
-            >
-              <LogOut className="h-4 w-4 text-amber-700" />
-              <span className="hidden sm:inline text-slate-700">Logout</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="gap-2 border-amber-300 hover:bg-amber-50 hover:border-amber-400 transition-all min-h-[44px]"
+              >
+                <ArrowLeft className="h-4 w-4 text-amber-700" />
+                <span className="hidden sm:inline text-slate-700">Back</span>
+              </Button>
+             <Button
+  variant="outline"
+  onClick={handleLogout}
+  disabled={loggingOut}
+  className="gap-2 border-amber-300 hover:bg-amber-50 hover:border-amber-400 transition-all min-h-[44px]"
+>
+  <LogOut className="h-4 w-4 text-amber-700" />
+  <span className="hidden sm:inline text-slate-700">
+    {loggingOut ? 'Logging out...' : 'Logout'}
+  </span>
+</Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <Tabs defaultValue="products" className="w-full space-y-8">
           <TabsList className="grid w-full grid-cols-4 h-auto p-1.5 bg-white/60 backdrop-blur-sm border border-amber-200/50 shadow-sm">
-            <TabsTrigger
-              value="products"
-              className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium"
-            >
+            <TabsTrigger value="products" className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium">
               <Sparkles className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Products</span>
               <span className="sm:hidden">Items</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="banners"
-              className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium"
-            >
+            <TabsTrigger value="banners" className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium">
               <Megaphone className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Banners</span>
               <span className="sm:hidden">Ads</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="suggestions"
-              className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium"
-            >
+            <TabsTrigger value="suggestions" className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium">
               <MessageSquare className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Messages</span>
               <span className="sm:hidden">Msgs</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="orders"
-              className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium"
-            >
+            <TabsTrigger value="orders" className="text-sm sm:text-base py-3 min-h-[44px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-100 data-[state=active]:to-amber-50 data-[state=active]:text-amber-900 data-[state=active]:shadow-sm font-medium">
               <ImageIcon className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Orders</span>
               <span className="sm:hidden">Orders</span>
@@ -593,7 +674,7 @@ const AdminDashboard = () => {
                           <td className="py-3 pr-4 font-semibold">{(o.total_amount || 0).toLocaleString('en-IN')}</td>
                           <td className="py-3 pr-4">
                             <ul className="list-disc pl-5 space-y-1">
-                              {(o.products || []).map((p: any, idx: number) => (
+                              {(Array.isArray(o.products) ? o.products : []).map((p: any, idx: number) => (
                                 <li key={idx}>{p.name} × {p.quantity} — ₹{p.price}</li>
                               ))}
                             </ul>
@@ -689,12 +770,128 @@ const AdminDashboard = () => {
                     <Button
                       type="submit"
                       className="w-full h-12 text-base bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                      disabled={loading}
                     >
-                      {editingBanner ? 'Update Banner' : 'Add Banner'}
+                      {loading ? 'Saving...' : editingBanner ? 'Update Banner' : 'Add Banner'}
                     </Button>
                   </form>
                 </DialogContent>
               </Dialog>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {banners.map((banner) => (
+                <Card key={banner.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-amber-200/50 bg-white/80 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-serif font-bold text-slate-800">{banner.title}</h3>
+                        <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">
+                          Order: {banner.display_order}
+                        </span>
+                      </div>
+                      {banner.subtitle && (
+                        <p className="text-slate-600 text-sm">{banner.subtitle}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 min-h-[44px] border-amber-300 hover:bg-amber-50 hover:border-amber-400 text-amber-700"
+                        onClick={() => handleEditBanner(banner)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 min-h-[44px] border-red-200 hover:bg-red-50 hover:border-red-300 text-red-600"
+                        onClick={() => handleDeleteBanner(banner.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {banners.length === 0 && (
+              <div className="text-center py-20 px-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-amber-200/50">
+                <Megaphone className="h-20 w-20 mx-auto text-amber-400 mb-4" />
+                <p className="text-2xl font-serif text-slate-700 mb-2">No banners yet</p>
+                <p className="text-sm text-slate-500 font-light">Create promotional banners for your store</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Suggestions Tab */}
+          <TabsContent value="suggestions" className="space-y-6">
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200/50">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-serif font-bold text-slate-800">Customer Messages</h2>
+                  <p className="text-sm text-slate-600 mt-1 font-light tracking-wide">
+                    Suggestions and feedback from customers
+                  </p>
+                </div>
+                <div className="text-sm text-slate-500 font-medium">
+                  {suggestions.length} {suggestions.length === 1 ? 'message' : 'messages'}
+                </div>
+              </div>
+
+              {suggestions.length === 0 ? (
+                <div className="text-center py-16">
+                  <MessageSquare className="h-16 w-16 mx-auto text-amber-400 mb-3" />
+                  <p className="text-lg text-slate-600 font-medium">No messages yet</p>
+                  <p className="text-sm text-slate-500 mt-1">Customer feedback will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {suggestions.map((suggestion) => (
+                    <Card key={suggestion.id} className="border border-amber-200/50 bg-white/60 hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-amber-100 p-2 rounded-full">
+                                <User className="h-4 w-4 text-amber-700" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-800">{suggestion.name}</h4>
+                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                  <Mail className="h-3 w-3" />
+                                  <a href={`mailto:${suggestion.email}`} className="hover:text-amber-600 transition-colors">
+                                    {suggestion.email}
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                              <p className="text-slate-700 whitespace-pre-wrap">{suggestion.message}</p>
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {new Date(suggestion.created_at).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[44px] min-w-[44px]"
+                            onClick={() => handleDeleteSuggestion(suggestion.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

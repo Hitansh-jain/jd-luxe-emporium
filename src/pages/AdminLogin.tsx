@@ -9,7 +9,6 @@ import { Lock } from "lucide-react";
 import * as OTPAuth from "otpauth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { queryAdminTwoFactor } from "@/lib/supabase-helpers";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -21,8 +20,9 @@ const AdminLogin = () => {
   const [secret, setSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Redirect if already logged in as admin
   useEffect(() => {
-    if (!authLoading && user && userRole === 'admin') {
+    if (!authLoading && user && userRole === "admin") {
       navigate("/admin/dashboard");
     }
   }, [user, userRole, authLoading, navigate]);
@@ -32,43 +32,58 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
+      // Step 1: Check role via RPC before login
+      const { data: roleData, error: roleError } = await supabase.rpc(
+        "get_user_role_by_email",
+        { p_email: email.trim() }
+      );
+
+      if (roleError) {
+        console.error("Role check error:", roleError);
+        toast.error("Failed to verify user role. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (roleData !== "admin") {
+        toast.error("Access denied. Admin privileges required.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Proceed to login if user is admin
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
-      const user = data.user;
-      if (!user) throw new Error("No user found");
 
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      const currentUser = data.user;
+      if (!currentUser) throw new Error("No user found");
 
-      if (!roles) {
-        await supabase.auth.signOut();
-        toast.error("Access denied. Admin privileges required.");
-        return;
-      }
-
-      // Check if 2FA secret exists
-      const twofaResponse = await queryAdminTwoFactor
+      // Step 3: Check for 2FA
+      const { data: existing2FA, error: twofaError } = await supabase
+        .from("admin_twofactor")
         .select("secret")
-        .eq("user_id", user.id)
+        .eq("user_id", currentUser.id)
         .maybeSingle();
 
-      if (twofaResponse.data?.secret) {
-        setSecret(twofaResponse.data.secret);
+      if (twofaError) throw twofaError;
+
+      if (existing2FA?.secret) {
+        // 2FA exists → show OTP input
+        setSecret(existing2FA.secret);
         setShowOtp(true);
         toast.info("Enter your 2FA code from Google Authenticator");
       } else {
+        // Create a new secret and redirect to QR page
         const newSecret = new OTPAuth.Secret();
-        await queryAdminTwoFactor.insert({
-          user_id: user.id,
-          secret: newSecret.base32,
-        });
+        await supabase.from("admin_twofactor").insert([
+          {
+            user_id: currentUser.id,
+            secret: newSecret.base32,
+          },
+        ]);
 
         const totp = new OTPAuth.TOTP({
           issuer: "HarshKanganStore",
@@ -80,8 +95,11 @@ const AdminLogin = () => {
         });
 
         const otpAuthUrl = totp.toString();
-        toast.info("Scan this QR in Google Authenticator to enable 2FA");
 
+        // 🔥 CRITICAL FIX: Sign out the user before redirecting to setup
+        await supabase.auth.signOut();
+
+        toast.info("Scan this QR in Google Authenticator to enable 2FA");
         navigate(`/admin/setup-2fa?otpauth=${encodeURIComponent(otpAuthUrl)}`);
       }
     } catch (error: any) {

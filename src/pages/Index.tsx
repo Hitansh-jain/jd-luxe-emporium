@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, ShieldCheck, Truck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/hero-jewelry.jpg";
 import necklace1 from "@/assets/necklace-1.jpg";
 import earrings1 from "@/assets/earrings-1.jpg";
@@ -12,10 +11,29 @@ import ring1 from "@/assets/ring-1.jpg";
 import logo from "@/assets/logo.png";
 import { BannerMarquee } from "@/components/BannerMarquee";
 import ProductCard from "@/components/ProductCard";
+import { queryProducts } from "@/lib/queryProducts"; // ✅ imported helper
 
 const Index = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ✅ Fetch products on mount using helper
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const data = await queryProducts();
+        setProducts(data);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const categories = [
     { name: "Necklaces", image: necklace1, link: "/products?category=necklace" },
@@ -29,29 +47,6 @@ const Index = () => {
     { icon: ShieldCheck, title: "Authenticity Guaranteed", description: "100% genuine artificial jewelry" },
     { icon: Truck, title: "Free Shipping", description: "On orders above ₹2000" },
   ];
-
-  // ✅ Fetch top liked, active products from Supabase
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-
-      const productResponse = await queryProducts
-        .select("id, name, price, image_url, category, description, like_count")
-        .eq("is_active", true)
-        .order("like_count", { ascending: false })
-        .limit(15);
-
-      if (productResponse.error) {
-        setProducts([]);
-      } else {
-        setProducts(productResponse.data || []);
-      }
-
-      setLoading(false);
-    };
-
-    fetchProducts();
-  }, []);
 
   return (
     <div className="min-h-screen">

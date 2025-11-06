@@ -19,14 +19,15 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, userRole, loading: authLoading } = useAuth();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // 🚀 Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
       if (userRole === "admin") {
-        toast.error("Access denied. Please use admin login.");
+        toast.error("Admins cannot log in here. Please use admin login.");
         navigate("/admin");
       } else {
         const redirect = searchParams.get("redirect") || "/";
@@ -35,46 +36,49 @@ const Login = () => {
     }
   }, [user, userRole, authLoading, navigate, searchParams]);
 
-  // 🧠 Handle input change
+  // ✅ Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
       });
     }
   };
 
-  // 🚪 Handle submit
+  // ✅ Fixed login handler (checks role before creating session)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Clear previous errors
     setErrors({});
-
-    // ✅ Form validation
-    try {
-      loginSchema.parse(formData);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) newErrors[err.path[0] as string] = err.message;
-        });
-        setErrors(newErrors);
-        toast.error("Please fix the errors in the form");
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
-      // 🧾 Sign in user (trim email to avoid whitespace issues)
+      // Step 1️⃣ Validate form
+      loginSchema.parse(formData);
+
+      // Step 2️⃣ Check role before login (via RPC)
+      const { data: roleData, error: roleError } = await supabase.rpc(
+        "get_user_role_by_email",
+        { p_email: formData.email.trim() }
+      );
+
+      if (roleError) {
+        console.error("Role pre-check error:", roleError);
+        toast.error("Could not verify user role. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (roleData === "admin") {
+        toast.error("Access denied.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 3️⃣ Proceed to Supabase login
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email.trim(),
         password: formData.password,
@@ -92,36 +96,35 @@ const Login = () => {
         return;
       }
 
-      if (!data.user) {
-        toast.error("Login failed");
+      const currentUser = data.user;
+      if (!currentUser) {
+        toast.error("Login failed. Try again.");
         setLoading(false);
         return;
       }
 
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
-
-      if (roleData?.role === "admin") {
-        await supabase.auth.signOut();
-        toast.error("Access denied. Please use admin login page.");
-        navigate("/admin");
-        setLoading(false);
-        return;
-      }
-
+      // ✅ Step 4️⃣ Success → redirect customer
       toast.success("Login successful!");
       const redirect = searchParams.get("redirect") || "/";
       navigate(redirect);
-
-    } catch (err) {
-      toast.error("An unexpected error occurred");
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        err.errors.forEach((e) => {
+          if (e.path[0]) newErrors[e.path[0] as string] = e.message;
+        });
+        setErrors(newErrors);
+        toast.error("Please fix the errors in the form");
+      } else {
+        console.error("Unexpected error:", err);
+        toast.error("Something went wrong");
+      }
+    } finally {
       setLoading(false);
     }
   };
 
+  // 🕒 Loading state while auth initializes
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -136,14 +139,16 @@ const Login = () => {
     );
   }
 
+  // 🧾 Form UI
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-
       <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-3xl text-center">Welcome back to Harsh Kangan</CardTitle>
+            <CardTitle className="text-3xl text-center">
+              Welcome back to Harsh Kangan
+            </CardTitle>
             <p className="text-center text-muted-foreground">
               Login to continue your jewellery shopping
             </p>
@@ -163,7 +168,9 @@ const Login = () => {
                   disabled={loading}
                   className={errors.email ? "border-destructive" : ""}
                 />
-                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
+                {errors.email && (
+                  <p className="text-sm text-destructive mt-1">{errors.email}</p>
+                )}
               </div>
 
               <div>
@@ -179,7 +186,9 @@ const Login = () => {
                   className={errors.password ? "border-destructive" : ""}
                 />
                 {errors.password && (
-                  <p className="text-sm text-destructive mt-1">{errors.password}</p>
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.password}
+                  </p>
                 )}
               </div>
 

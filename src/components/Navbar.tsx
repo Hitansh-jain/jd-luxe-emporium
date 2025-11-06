@@ -65,7 +65,12 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Harsh Kangan Store logo" className="h-12 w-auto md:h-14 object-contain" />
+<img
+  src={logo}
+  alt="Harsh Kangan Store logo"
+  className="max-h-14 w-auto object-contain md:max-h-16"
+/>
+
             <div className="hidden sm:block">
               <p className="text-xl md:text-2xl font-serif font-bold tracking-wide bg-gradient-to-r from-amber-700 to-amber-500 bg-clip-text text-transparent">
                 Harsh Kangan Store

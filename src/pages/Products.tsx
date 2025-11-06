@@ -18,6 +18,24 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload) => {
+          console.log('Realtime change received:', payload);
+          fetchProducts(); // Re-fetch products when any change happens
+        }
+      )
+      .subscribe();
+
+    // Cleanup on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedCategory]);
 
   const fetchProducts = async () => {
@@ -33,11 +51,11 @@ const Products = () => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
+
       setProducts(data || []);
     } catch (error) {
-      // Silently fail
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -46,11 +64,12 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Our Collection</h1>
-          <p className="text-xl text-muted-foreground">Discover timeless pieces that define elegance</p>
+          <p className="text-xl text-muted-foreground">
+            Discover timeless pieces that define elegance
+          </p>
         </div>
 
         {/* Category Filter */}
@@ -80,8 +99,12 @@ const Products = () => {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-xl text-muted-foreground">No products found in this category.</p>
-            <p className="text-muted-foreground mt-2">Check back soon for new arrivals!</p>
+            <p className="text-xl text-muted-foreground">
+              No products found in this category.
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Check back soon for new arrivals!
+            </p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
